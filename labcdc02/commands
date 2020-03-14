@@ -1,0 +1,139 @@
+#!/bin/bash
+
+emails_file_path="$HOME/.cache/autolab/emails.list"
+
+EMAILS_FILE=$emails_file_path
+
+# Vi får ha en fil istället för en variabel
+# som en flagga. Det verkar inte gå att ha variabler
+# kombinerad med subshell och sånt som händer i
+# detta skript. Alltså blir en fil en fullösning.
+BADPASSWORD_FLAG=$(mktemp --dry-run)
+
+function username() {
+
+	NAME=$1
+
+	# Ta bort tecken vi inte vill ha och lagra namnet i en ny variabel
+	NAME_ALNUM=$(echo $NAME | sed 's/[^a-zA-Z 0-9]//g')
+
+	# Ta ut för- och efternamn och gör om till gemener
+	FNAME_LOWER=$(echo $NAME_ALNUM | cut -d' ' -f1 | tr '[:upper:]' '[:lower:]')
+	LNAME_LOWER=$(echo $NAME_ALNUM | cut -d' ' -f2 | tr '[:upper:]' '[:lower:]')
+
+	# Ta ut de första tre tecknen från för- och efternamn samt lägg
+	# på random-nummer för utfyllnad, så att vi alltid får minst sex
+	# tecken
+	USERNAME_FILL="${FNAME_LOWER:0:3}${LNAME_LOWER:0:3}$[100000 + $[ RANDOM % 999999 ]]"
+
+	USERNAME=${USERNAME_FILL:0:6}
+
+	echo $USERNAME
+}
+
+function password {
+
+	# Första gången blir lösenordet alltid samma
+	if [ ! -e $BADPASSWORD_FLAG ]
+	then
+
+		echo "Sommar2015!"
+		# Slå på flaggan
+		> $BADPASSWORD_FLAG
+		return 0
+	fi
+
+	# Slumpa fram några lösenord om vi inte redan har gjort det
+	if [ ! -e /tmp/autolab-passwords ]
+	then
+		# Ta lösenord från John
+		if [ -e /usr/share/john/password.lst ]
+		then
+			# Ta lösenord direkt från John
+			for run in {1..10} ; do echo $(cat /usr/share/john/password.lst | sort -R | head -n 1) ; done >> /tmp/autolab-passwords
+
+			# Ta lösenord från John och lägg till något på slutet
+			for run in {1..10} ; do echo "$(cat /usr/share/john/password.lst | sort -R | head -n 1)2014" ; done >> /tmp/autolab-passwords
+			for run in {1..10} ; do echo "$(cat /usr/share/john/password.lst | sort -R | head -n 1)2015!" ; done >> /tmp/autolab-passwords
+		fi
+
+		if [ -f "/usr/share/dict/words" ]
+		then
+			# Ta lösenord direkt från Cracklib
+			shuf -n 10 /usr/share/dict/words >> /tmp/autolab-passwords
+
+			# Ta lösenord från Cracklib och lägg till något på slutet
+			shuf -n 20 /usr/share/dict/words | sed 's|$|2014|' >> /tmp/autolab-passwords
+			shuf -n 20 /usr/share/dict/words | sed 's|$|2015!|' >> /tmp/autolab-passwords
+		fi
+
+		# Slumta fram lösenord. De som får en dubbelfnutt kommer inte att fungera i skriptet
+		# som lägger in användarna i AD:t.
+		tr -cd '[:print:]' < /dev/urandom | fold -w7 | head -n10 >> /tmp/autolab-passwords
+		tr -cd '[:print:]' < /dev/urandom | fold -w8 | head -n10 >> /tmp/autolab-passwords
+		tr -cd '[:alnum:]' < /dev/urandom | fold -w9 | head -n10 >> /tmp/autolab-passwords
+		tr -cd '[:alnum:]' < /dev/urandom | fold -w10 | head -n10 >> /tmp/autolab-passwords
+		tr -cd '[:alnum:]' < /dev/urandom | fold -w16 | head -n10 >> /tmp/autolab-passwords
+
+		# Ta en del av lösenorden och gör om första bokstaven till versal
+		head -70 /tmp/autolab-passwords | sed "s/\b\(.\)/\u\1/g" >> /tmp/autolab-passwords
+
+		# Vi vill alltid ha mycket sommar och sånt
+		echo "Sommar2015" >> /tmp/autolab-passwords
+		echo "Vinter2015!" >> /tmp/autolab-passwords
+		echo "Sommar2012" >> /tmp/autolab-passwords
+		echo "Sommar2013!" >> /tmp/autolab-passwords
+		echo "Sommar2014!" >> /tmp/autolab-passwords
+
+		# Vi lägger även in lösenordet som finns på en annan user i description
+		echo "UDmtlrrlM22G37SD" >> /tmp/autolab-passwords
+
+		# Vi vill följa standardpolicyn i Windows Server. Ta
+		# därför bort lösenord som är för korta.
+		cat /tmp/autolab-passwords | strings -7 > /tmp/autolab-passwords-tmp
+		mv /tmp/autolab-passwords-tmp /tmp/autolab-passwords
+
+		# I PowerShell används ` som escape.
+		# Escapa `
+		sed -i 's/`/``/g' /tmp/autolab-passwords
+		# Escapa dubbelfnutt
+		sed -i 's/"/`"/g' /tmp/autolab-passwords
+	fi
+
+	# Slumpa fram ett lösenord
+	echo $(cat /tmp/autolab-passwords | sort -R | head -n 1)
+}
+
+# Hitta e-postadresser, om det inte redan är gjort
+if [ ! -f "$emails_file_path" ]; then
+	find /usr/include -type f | while read f ; do grep -E -o "\b[a-zA-Z0-9.-]+@[a-zA-Z0-9.-]+\.[a-zA-Z0-9.-]+\b" "$f" ; done > /tmp/.autolab-emails
+	find /usr/share/doc/ -type f -name README -or -name CHANGELOG \
+	 | while read f ; do grep -E -o "\b[a-zA-Z0-9.-]+@[a-zA-Z0-9.-]+\.[a-zA-Z0-9.-]+\b" "$f" ; done >> /tmp/.autolab-emails
+	cat /tmp/.autolab-emails | sort -u > $emails_file_path
+fi
+
+echo "Got $(cat $emails_file_path | wc -l) e-mail addresses"
+
+# Skapa förnamn
+cat $emails_file_path | cut -d'@' -f-1 | grep '\.' | cut -d'.' -f1 | sed -e "s/\b\(.\)/\u\1/g" > /tmp/autolab-fnames
+
+# Skapa efternamn
+cat $emails_file_path | cut -d'@' -f-1 | grep '\.' | cut -d'.' -f2- | sed -e "s/\b\(.\)/\u\1/g" > /tmp/autolab-lnames
+
+# Skapa 500 st för- och efternamn
+for run in {1..500} ; do echo -e "$(cat /tmp/autolab-fnames | sort -R | head -n 1)\t$(cat /tmp/autolab-lnames | sort -R | head -n 1)" ; done > /tmp/autolab-fullname
+
+# Ta för- och efternamn och skapa en ny fill som även innehåller användarnamn och lösenord
+cat /tmp/autolab-fullname | while read f ; do echo -e "$f\t$(username "$f")\t$(password)" ; done > /tmp/autolab-fullname-username-password
+
+cat /tmp/autolab-fullname-username-password | awk -F'\t' '{ print "New-ADUser -SAMAccountName \"" $3 "\" -GivenName \"" $1 "\" -Surname \"" $2 "\" -Name \"" $1 " " $2 "\" -DisplayName \"" $1 " " $2 "\" -Enabled 1 -AccountPassword (ConvertTo-SecureString \"" $4 "\" -AsPlainText -Force)" }' > /tmp/autolab-addusers.ps1
+echo 'New-ADUser -SAMAccountName "test1" -GivenName "Test" -Surname "1" -Name "Test 1" -DisplayName "Test 1" -Description "Password: UDmtlrrlM22G37SD" -Enabled 1 -PasswordNeverExpires 1 -AccountPassword (ConvertTo-SecureString "UDmtlrrlM22G37SD" -AsPlainText -Force)' >> /tmp/autolab-addusers.ps1
+
+# unix2dos
+sed -i 's/$/\r/' /tmp/autolab-addusers.ps1
+
+if [ ! -d "/tmp/.autolab-labcdc01/data-iso/stages/5-addusers" ]; then
+	mkdir -p /tmp/.autolab-labcdc01/data-iso/stages/5-addusers
+fi
+
+mv /tmp/autolab-addusers.ps1 /tmp/.autolab-labcdc01/data-iso/stages/5-addusers/
