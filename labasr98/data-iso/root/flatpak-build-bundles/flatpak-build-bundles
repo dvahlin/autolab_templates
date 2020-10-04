@@ -1,0 +1,34 @@
+#!/bin/bash
+
+set -e
+
+target_dir="/var/www/html/flatpak"
+
+command -v flatpak >/dev/null || { echo "flatpak: command not found"; \
+ exit 1; }
+
+if [ ! -d "$target_dir" ]; then
+	mkdir -p "$target_dir"
+fi
+
+flatpak list | while read r; do
+
+	name=$(echo $r | cut -d/ -f1)
+	arch=$(echo $r | cut -d/ -f2)
+	branch=$(echo $r | cut -d/ -f3 | cut -d' ' -f1)
+	options=$(echo $r | rev | cut -d' ' -f1 | rev)
+
+	flatpak_parameters=(build-bundle)
+
+	if [[ $options == *"runtime"* ]]; then
+
+		flatpak_parameters+=("--runtime")
+	fi
+
+	flatpak_parameters+=("/var/lib/flatpak/repo")
+	flatpak_parameters+=("$target_dir/$name-$arch-$branch.flatpak")
+	flatpak_parameters+=("$name")
+	flatpak_parameters+=("$branch")
+
+	flatpak ${flatpak_parameters[@]}
+done

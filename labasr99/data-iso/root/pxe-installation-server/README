@@ -1,0 +1,23 @@
+https://docs.centos.org/en-US/8-docs/advanced-install/assembly_preparing-for-a-network-install/
+
+  REPOSYNC
+
+  - https://access.redhat.com/solutions/23016
+  - http://serverfault.com/questions/450746/faster-way-to-mirror-a-ftp-site
+
+  MIRROR
+
+  - /usr/local/sbin/pxe-installation-server-mirror
+
+  INTERNET EMULATOR
+
+  - http://mirror.centos.org/centos/
+
+  NATIVE REPOSITORIES
+
+  - CentOS 8
+
+    BaseOS
+
+    mirrorlist=http://mirrorlist.centos.org/?release=8&arch=x86_64&repo=BaseOS&infra=$infra
+    baseurl=http://mirror.centos.org/centos/$releasever/$os/$basearch/

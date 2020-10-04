@@ -1,0 +1,1 @@
+Chrony tillåter inte klienter om den inte kan nå en source. Ändra i /etc/chrony.conf så att "local stratum 10" aktiveras, om det behövs?

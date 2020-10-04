@@ -1,0 +1,60 @@
+#!/bin/bash
+
+# Install files in /var/lib/tftpboot/
+#yum -y install syslinux-tftpboot
+
+# Install grub
+#yum -y install grub2-efi
+cp /boot/efi/EFI/centos/shimx64.efi /var/lib/tftpboot/
+
+# Install shim
+#yum -y install shim
+cp /boot/efi/EFI/centos/shimx64-centos.efi /var/lib/tftpboot/
+
+# Copy all other needfull stuff...
+cp /tftboot/vesamenu.c32 /var/lib/tftpboot/
+cp /tftboot/pxelinux.0 /var/lib/tftpboot/
+cp /tftboot/libutil.c32 /var/lib/tftpboot/
+cp /tftboot/libcom32.c32 /var/lib/tftpboot/
+cp /tftboot/ldlinux.c32 /var/lib/tftpboot/
+
+
+releasever=8
+#yum -y install wget
+#wget http://mirror.centos.org/centos-$releasever/$releasever/os/x86_64/images/pxeboot/vmlinuz -O /var/lib/tftpboot/vmlinuz
+#wget http://mirror.centos.org/centos-$releasever/$releasever/os/x86_64/images/pxeboot/initrd.img -O /var/lib/tftpboot/initrd.img
+mkdir -p /var/lib/tftpboot/centos-8/8/BaseOS/x86_64/kickstart/images/pxeboot/
+wget http://mirror.centos.org/centos-8/8/BaseOS/x86_64/kickstart/images/pxeboot/vmlinuz \
+ -O /var/lib/tftpboot/centos-8/8/BaseOS/x86_64/kickstart/images/pxeboot/vmlinuz
+wget http://mirror.centos.org/centos-8/8/BaseOS/x86_64/kickstart/images/pxeboot/initrd.img \
+ -O /var/lib/tftpboot/centos-8/8/BaseOS/x86_64/kickstart/images/pxeboot/initrd.img
+
+#releasever=7
+#yum -y install wget
+#wget http://mirror.centos.org/centos-$releasever/$releasever/os/x86_64/images/pxeboot/vmlinuz -O /var/lib/tftpboot/vmlinuz
+#wget http://mirror.centos.org/centos-$releasever/$releasever/os/x86_64/images/pxeboot/initrd.img -O /var/lib/tftpboot/initrd.img
+#mkdir -p /var/lib/tftpboot/centos/7/os/x86_64/images/pxeboot/
+#wget http://mirror.centos.org/centos/7/os/x86_64/images/pxeboot/vmlinuz \
+# -O /var/lib/tftpboot/centos/7/os/x86_64/images/pxeboot/vmlinuz
+#wget http://mirror.centos.org/centos/7/os/x86_64/images/pxeboot/initrd.img \
+# -O /var/lib/tftpboot/centos/7/os/x86_64/images/pxeboot/initrd.img
+
+# Install dhcpd
+#yum -y install dhcp
+systemctl enable dhcpd.service
+
+# Enable DNS
+systemctl enable dnsmasq.service
+firewall-cmd --permanent --add-service=dns
+
+# Enable NTP server
+firewall-cmd --permanent --add-service=ntp
+sed -i 's|#allow 192.168.0.0/16|allow 10.98.20.0/24|' /etc/chrony.conf
+
+# Enable php (for mirrorlist)
+#yum -y install php
+
+# Create mirror
+#mkdir -p /var/www/html/centos/7/os/x86_64/LiveOS
+#wget http://mirror.centos.org/centos/7/os/x86_64/LiveOS/squashfs.img \
+# -O /var/www/html/centos/7/os/x86_64/LiveOS/squashfs.img
