@@ -1,0 +1,8 @@
+#!/bin/bash
+
+#yum install -y httpd
+systemctl enable httpd.service
+systemctl start httpd.service
+firewall-cmd --permanent --add-service=http
+firewall-cmd --permanent --add-service=https
+firewall-cmd --reload

@@ -1,0 +1,13 @@
+default vesamenu.c32
+prompt 1
+timeout 600
+
+label centoslive
+  menu label Install CentOS 8
+  kernel centos-8/8/BaseOS/x86_64/os/images/pxeboot/vmlinuz
+  append initrd=centos-8/8/BaseOS/x86_64/os/images/pxeboot/initrd.img inst.repo=http://mirror.centos.org/centos-8/8/BaseOS/x86_64/os/ ks=http://10.98.20.1/ks.cfg
+
+label fedora
+  menu label Install Fedora
+  kernel pub/fedora/linux/releases/24/Everything/x86_64/os/images/pxeboot/vmlinuz
+  append initrd=pub/fedora/linux/releases/24/Everything/x86_64/os/images/pxeboot/initrd.img inst.repo=http://download.fedoraproject.org/pub/fedora/linux/releases/24/Everything/x86_64/os/
