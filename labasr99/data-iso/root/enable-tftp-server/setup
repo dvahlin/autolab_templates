@@ -1,7 +1,0 @@
-#!/bin/bash
-
-#yum install -y tftp-server
-firewall-cmd --permanent --add-service=tftp
-
-systemctl enable tftp.socket
-systemctl start tftp.socket

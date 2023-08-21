@@ -1,6 +1,0 @@
-HTTP/http
-HTTP/lp
-HTTP/proxy
-MSSQLSvc/SQLCAdmin
-MSSQLSvc/SQLAcc
-MSSQLSvc/SQLreader

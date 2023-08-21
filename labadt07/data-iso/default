@@ -1,9 +1,0 @@
-default menu.c32
-prompt 0
-timeout 30
-MENU TITLE Zeek PXE Menu
-
-LABEL centos7_x64
-MENU LABEL CentOS 7 X64
-KERNEL /networkboot/vmlinuz
-APPEND  initrd=/networkboot/initrd.img ks=ftp://192.0.2.1/pub/centos7.cfg
